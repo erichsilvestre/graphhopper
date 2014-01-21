@@ -166,6 +166,7 @@ public class GraphHopperServlet extends GHBaseServlet {
         boolean useMiles = getBooleanParam(req, "useMiles", false);
         Locale locale = Helper.getLocale(getParam(req, "locale", "en"));
         boolean encodedPolylineParam = getBooleanParam(req, "encodedPolyline", true);
+		boolean simple = getBooleanParam(req, "simple", false);
         JSONBuilder builder;
         if (rsp.hasErrors()) {
             builder = new JSONBuilder().startObject("info");
@@ -194,7 +195,7 @@ public class GraphHopperServlet extends GHBaseServlet {
                     object("distance", rsp.getDistance()).
                     object("time", rsp.getMillis());
 
-            if (enableInstructions) {
+            if (!simple && enableInstructions) {
                 Translation tr = trMap.getWithFallBack(locale);
                 InstructionList instructions = rsp.getInstructions();
                 builder.startObject("instructions").
@@ -210,15 +211,17 @@ public class GraphHopperServlet extends GHBaseServlet {
             if (points.getSize() >= 2)
                 builder.object("bbox", rsp.calcRouteBBox(hopper.getGraph().getBounds()).toGeoJson());
 
-            if (encodedPolylineParam) {
-                String encodedPolyline = WebHelper.encodePolyline(points);
-                builder.object("coordinates", encodedPolyline);
-            } else {
-                builder.startObject("data").
-                        object("type", "LineString").
-                        object("coordinates", points.toGeoJson()).
-                        endObject();
-            }
+			if (!simple) {
+				if (encodedPolylineParam) {
+					String encodedPolyline = WebHelper.encodePolyline(points);
+					builder.object("coordinates", encodedPolyline);
+				} else {
+					builder.startObject("data").
+							object("type", "LineString").
+							object("coordinates", points.toGeoJson()).
+							endObject();
+				}
+			}
             // end route
             builder = builder.endObject();
         }
